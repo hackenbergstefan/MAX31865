@@ -167,8 +167,8 @@ class max31865(object):
 		return byte	
 	
 	def calcPT100Temp(self, RTD_ADC_Code):
-		R_REF = 400.0 # Reference Resistor
-		Res0 = 100.0; # Resistance at 0 degC for 400ohm R_Ref
+		R_REF = 430.0 # Reference Resistor, Adafruit board uses 430ohm, not 400, see https://www.adafruit.com/product/3328
+		Res0 = 100.0; # Resistance at 0 degC for 430ohm R_Ref
 		a = .00390830
 		b = -.000000577500
 		# c = -4.18301e-12 # for -200 <= T <= 0 (degC)
@@ -207,10 +207,11 @@ class FaultError(Exception):
 if __name__ == "__main__":
 
 	import max31865
-	csPin = 8
-	misoPin = 9
-	mosiPin = 10
-	clkPin = 11
+	# TODO is MISO-SDO and MOSI-SDI correct?
+	csPin =   40 # GPIO21 / CS
+	misoPin = 15 # GPIO22 / SDO
+	mosiPin = 16 # GPIO23 / SDI
+	clkPin =  18 # GPIO24 / CLK
 	max = max31865.max31865(csPin,misoPin,mosiPin,clkPin)
 	tempC = max.readTemp()
 	GPIO.cleanup()
