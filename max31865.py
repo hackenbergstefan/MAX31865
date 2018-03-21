@@ -23,7 +23,7 @@
 
 import time, math
 import RPi.GPIO as GPIO
-#import numpy
+# import numpy
 
 class max31865(object):
 	"""Reading Temperature from the MAX31865 with GPIO using 
@@ -34,7 +34,7 @@ class max31865(object):
 	   3rd and 4th degree parts of the polynomial) and the straight line approx.
 	   temperature is calculated with the quadratic formula one being the most accurate.
 	"""
-	def __init__(self, csPin = 8, misoPin = 9, mosiPin = 10, clkPin = 11):
+	def __init__(self, csPin = 40, misoPin = 15, mosiPin = 16, clkPin = 18):
 		self.csPin = csPin
 		self.misoPin = misoPin
 		self.mosiPin = mosiPin
@@ -165,7 +165,10 @@ class max31865(object):
 				byte |= 0x1
 			GPIO.output(self.clkPin, GPIO.LOW)
 		return byte	
-	
+
+	def farenheit(self, celsius):
+		return celsius * (9.0/5.0) + 32.0
+
 	def calcPT100Temp(self, RTD_ADC_Code):
 		R_REF = 430.0 # Reference Resistor, Adafruit board uses 430ohm, not 400, see https://www.adafruit.com/product/3328
 		Res0 = 100.0; # Resistance at 0 degC for 430ohm R_Ref
@@ -188,13 +191,14 @@ class max31865(object):
 		# for 0 <= T <= 850 (degC)
 		temp_C = -(a*Res0) + math.sqrt(a*a*Res0*Res0 - 4*(b*Res0)*(Res0 - Res_RTD))
 		temp_C = temp_C / (2*(b*Res0))
-		temp_C_line = (RTD_ADC_Code/32.0) - 256.0
+		# straight line approximation is 30+ degrees off at room temperature
+		# temp_C_line = (RTD_ADC_Code/32.0) - 256.0
 		# removing numpy.roots will greatly speed things up
-		#temp_C_numpy = numpy.roots([c*Res0, -c*Res0*100, b*Res0, a*Res0, (Res0 - Res_RTD)])
-		#temp_C_numpy = abs(temp_C_numpy[-1])
-		print "Straight Line Approx. Temp: %f degC" % temp_C_line
-		print "Callendar-Van Dusen Temp (degC > 0): %f degC" % temp_C
-		#print "Solving Full Callendar-Van Dusen using numpy: %f" %  temp_C_numpy
+		# temp_C_numpy = numpy.roots([c*Res0, -c*Res0*100, b*Res0, a*Res0, (Res0 - Res_RTD)])
+		# temp_C_numpy = abs(temp_C_numpy[-1])
+		# print "Straight Line Approx. Temp: %f degC / %f degF" % (temp_C_line, self.farenheit(temp_C_line))
+		print "Callendar-Van Dusen Temp (degC > 0): %.1f degC / %.1f degF" % (temp_C, self.farenheit(temp_C))
+		# print "Solving Full Callendar-Van Dusen using numpy: %.1f degC / %.1f degF" % (temp_C_numpy, self.farenheit(temp_C_numpy))
 		if (temp_C < 0): #use straight line approximation if less than 0
 			# Can also use python lib numpy to solve cubic
 			# Should never get here in this application
@@ -207,11 +211,12 @@ class FaultError(Exception):
 if __name__ == "__main__":
 
 	import max31865
-	# TODO is MISO-SDO and MOSI-SDI correct?
-	csPin =   40 # GPIO21 / CS
-	misoPin = 15 # GPIO22 / SDO
-	mosiPin = 16 # GPIO23 / SDI
-	clkPin =  18 # GPIO24 / CLK
+	# NOTE these pins use "gpio numbering", not "physical numbering"! https://www.raspberrypi.org/documentation/usage/gpio-plus-and-raspi2/README.md
+	# e.g. 21 is GPIO21, not physical pin 21
+	csPin =   21 # CS
+	misoPin = 22 # SDO
+	mosiPin = 23 # SDI
+	clkPin =  24 # CLK
 	max = max31865.max31865(csPin,misoPin,mosiPin,clkPin)
 	tempC = max.readTemp()
 	GPIO.cleanup()
